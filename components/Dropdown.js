@@ -17,6 +17,8 @@ const Dropdown = ({ data, placeholder, setValue, label }) => {
           backgroundColor: "#ffffff99",
           borderColor: "#ccc",
           marginTop: 5,
+          height: 50,
+          alignItems: "center"
         }}
         dropdownStyles={{
           backgroundColor: "#ffffff99",
@@ -26,8 +28,9 @@ const Dropdown = ({ data, placeholder, setValue, label }) => {
           height: 40
         }}
         inputStyles={{
-          padding: 4,
-          color: "#000"
+          color: "#000",
+          fontFamily: "Nunito_500Medium",
+          fontSize: 16
         }}
       />
     </View>
@@ -40,7 +43,8 @@ const styles = StyleSheet.create({
   label: {
       color: "#00597D",
       fontSize: 14,
-      fontFamily: "Nunito_600SemiBold"
+      fontFamily: "Nunito_600SemiBold",
+      marginLeft: 7,
   },
   input: {
       fontSize: 16,

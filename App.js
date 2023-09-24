@@ -15,27 +15,6 @@ import FontAwesome from 'react-native-vector-icons/FontAwesome'
 import EvilIcon from 'react-native-vector-icons/EvilIcons'
 import AddAsset from './screens/dashboard/AddAsset';
 
-function SubHome() {
-  const Stack = createNativeStackNavigator();
-  return (
-    <Stack.Navigator>
-      <Stack.Screen
-        name="SubHome"
-        component={Home}
-        options={{
-          headerShown: false
-        }}
-      />
-      <Stack.Screen
-        name="AddAsset"
-        component={AddAsset}
-        options={{
-          headerShown: false
-        }}
-      />
-    </Stack.Navigator>
-  )
-}
 function Dashboard() {
   const Tab = createMaterialBottomTabNavigator();
   return (
@@ -56,7 +35,7 @@ function Dashboard() {
     >
       <Tab.Screen 
         name="Home"
-        component={SubHome}
+        component={Home}
         options={{
           tabBarIcon: ({color}) => {
             return <AntDesign name="home" size={24} color={color} />
@@ -117,6 +96,13 @@ export default function App() {
                 headerShown: false
               }}
             />
+             <Stack.Screen
+                name="AddAsset"
+                component={AddAsset}
+                options={{
+                  headerShown: false
+                }}
+              />
           </Stack.Navigator>
         </NavigationContainer>
     </SafeAreaProvider>

@@ -1,7 +1,7 @@
 import { View, ScrollView, Image, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import AntDesign from 'react-native-vector-icons/AntDesign';
+import Entypo from 'react-native-vector-icons/Entypo';
 import AssetCard from '../../components/AssetCard';
 
 const Home = ({ navigation }) => {
@@ -85,13 +85,8 @@ const Home = ({ navigation }) => {
           )
          }
         </View>
-      <TouchableOpacity style={[styles.add, styles.shadow]} onPress={() => navigation.navigate("Dashboard", {
-            screen: "Home",
-            params: {
-              screen: "AddAsset"
-            }
-          })}>
-        <AntDesign name="plus" color={"#00435e"} size={25}/>
+      <TouchableOpacity style={[styles.add, styles.shadow]} onPress={() => navigation.navigate("AddAsset")}>
+        <Entypo name="plus" color={"#00435e"} size={25}/>
       </TouchableOpacity>
     </View>
   )

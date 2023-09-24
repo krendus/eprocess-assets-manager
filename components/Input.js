@@ -24,6 +24,7 @@ const styles = StyleSheet.create({
     label: {
         color: "#00597D",
         fontSize: 14,
+        marginLeft: 7,
         fontFamily: "Nunito_600SemiBold"
     },
     input: {
