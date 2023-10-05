@@ -1,12 +1,68 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import React, { useState } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Input from '../components/Input'
+import { selectAuthenticatedUser } from '../db/User.table'
+import * as SQLite from "expo-sqlite";
+import { ToastAndroid } from 'react-native'
+import { observer } from 'mobx-react-lite'
+import { useUserStore } from '../store/user.store'
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import { useStatusStore } from '../store/status.store'
+import { ActivityIndicator } from 'react-native-paper'
 
-const Login = ({ navigation }) => {
+const Login = observer(({ navigation }) => {
   const insets = useSafeAreaInsets();
   const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("")
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { addUser } = useUserStore();
+  const { setStatus } = useStatusStore()
+  const handleSignInResponse = (data, err) => {
+    setLoading(false);
+    if(data) {
+        console.log("Status updated");
+        if(Platform.OS === "android") {
+          ToastAndroid.show("Sign in successful", ToastAndroid.SHORT)
+        }
+        addUser(data);
+        setStatus(true);
+        navigation.navigate("Dashboard", {
+          screen: "Home"
+        })
+    } else {
+      if(Platform.OS === "android") {
+        ToastAndroid.show("Invalid Credentials", ToastAndroid.SHORT)
+      } else {    
+          Alert.alert("Invalid Credentials", "Invalid Credentials");
+      }
+        console.log(err);
+    }
+  }
+  const handleSignIn = () => {
+    if(loading) return;
+    setLoading(true);
+    if (username && password) {
+        const db = SQLite.openDatabase("database.db");
+        db.transaction((tx) => {
+            const item = {
+                username,
+                password,
+            }
+            selectAuthenticatedUser(tx, item, handleSignInResponse)
+        })
+    } else {
+        setLoading(false);
+        if(Platform.OS === "android") {
+            ToastAndroid.show("Please enter required fields", ToastAndroid.SHORT)
+        } else {    
+            Alert.alert("Required fields", "Please enter required fields");
+        }
+    }
+    // navigation.navigate("Dashboard", {
+    //     screen: "Home"
+    //   })
+  }
   return (
     <View 
       style={{
@@ -41,25 +97,28 @@ const Login = ({ navigation }) => {
           </View>
         </View>
         <View style={styles.btnContainer}>
-          <Text style={styles.notify}>If you don't have sign in details contact your Supervisor</Text>
-          <TouchableOpacity style={styles.btn} onPress={() => navigation.navigate("Dashboard", {
-            screen: "Home"
-          })}>
-            <Text style={styles.btnText}>Sign In</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", columnGap: 5, marginBottom: 5 }}>  
+            <Text style={styles.notify} on>Don't have an account?</Text>
+            <TouchableOpacity onPress={() => navigation.navigate("Register")}>
+                <Text style={styles.notifyLink}>Sign up</Text>
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity style={styles.btn} onPress={handleSignIn}>
+            {loading ? <ActivityIndicator animating={true} color="#fff" /> : <Text style={styles.btnText}>Sign In</Text>}
           </TouchableOpacity>
         </View>
       </View>
     </View>
   )
-}
+})
 const styles = StyleSheet.create({
   container: {
     padding: 15,
     flex: 1,
   },
   headerContainer: {
-    marginTop: 70,
-    marginBottom: 20
+    marginTop: 20,
+    marginBottom: 10
   },
   header: {
     fontSize: 40,
@@ -76,12 +135,18 @@ const styles = StyleSheet.create({
   },
   btnContainer: {
     flex: 1,
-    marginTop: 20
+    marginTop: 20,
+    marginBottom: 20,
   },
   notify: {
-    fontSize: 12,
+    fontSize: 16,
     fontFamily: "Nunito_500Medium",
     textAlign: "center"
+  },
+  notifyLink: {
+    fontSize: 16,
+    fontFamily: "Nunito_700Bold",
+    color: "#00435e"
   },
   btn: {
     backgroundColor: "#00435e",

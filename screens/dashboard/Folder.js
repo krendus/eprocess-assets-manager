@@ -15,7 +15,7 @@ const Folder = () => {
           backgroundColor: "#f3f3f3"
         }}
       >
-      <Text>Folder</Text>
+      <Text style={{ fontSize: 20, color: "#444", marginTop: 90, textAlign: "center", fontFamily: "Nunito_600SemiBold" }}>Folder coming soon!!!</Text>
     </View>
   )
 }

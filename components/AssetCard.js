@@ -1,11 +1,14 @@
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native'
 import React from 'react'
 
-const AssetCard = ({ name, serialNo, imgSrc }) => {
+const AssetCard = ({ name, serialNo, imgSrc, navigation, id }) => {
   return (
-    <TouchableOpacity style={styles.container}>
+    <TouchableOpacity style={styles.container} onPress={() => navigation.navigate("ViewAsset", {
+        id
+    })}>
       <View style={styles.imageContainer}>
-        <Image source={imgSrc} style={{ height: 150, width: 150 }} />
+        <View style={styles.cover}></View>
+        <Image source={{ uri: imgSrc }} style={{ height: 150, width: 150 }} />
       </View>
       <View style={styles.infoContainer}>
         <Text style={styles.name}>{name.length > 15 ? `${name.substring(0, 15)}...` : name}</Text>
@@ -40,6 +43,15 @@ const styles = StyleSheet.create({
     color: "#777",
     fontSize: 12,
     fontFamily: "Nunito_500Medium"
+  },
+  cover: {
+    height: 150,
+    width: 150,
+    backgroundColor: "#00000066",
+    position: "absolute",
+    top: 0,
+    left: 0,
+    zIndex: 9,
   }
 })
 

@@ -3,12 +3,47 @@ import React, { useEffect, useState } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Entypo from 'react-native-vector-icons/Entypo';
 import AssetCard from '../../components/AssetCard';
+import { observer } from 'mobx-react-lite';
+import { useUserStore } from '../../store/user.store';
+import * as SQLite from "expo-sqlite";
+import { selectAllAsset } from '../../db/Asset.table';
+import { ToastAndroid } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 
-const Home = ({ navigation }) => {
+const Home = observer(({ navigation }) => {
   const insets = useSafeAreaInsets();
   const [showList, setShowList] = useState(false);
+  const [assets, setAssets] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const { user } = useUserStore();
+
+  const handleGetAssetsResponse = (data, err) => {
+    setLoading(false);
+    if(data) {
+        console.log("Assets Fetched");
+        console.log(data);
+        setAssets(data);
+    } else {
+      if(Platform.OS === "android") {
+        ToastAndroid.show("Error fetching assets", ToastAndroid.SHORT)
+      } else {    
+          Alert.alert("Error fetching assets", "Error fetching assets");
+      }
+        console.log(err);
+    }
+  }
+  const handleGetAssets = () => {
+    const db = SQLite.openDatabase("database.db");
+    db.transaction((tx) => {
+      selectAllAsset(tx, user.id, handleGetAssetsResponse)
+    })
+  }
   useEffect(() => {
+    const unsubscribe = navigation.addListener("focus", () => {
+      handleGetAssets();
+    })
     getShadow();
+    return unsubscribe;
   }, [])
   
   return (
@@ -26,56 +61,28 @@ const Home = ({ navigation }) => {
           <View style={styles.profile}>
             <Image source={require("../../assets/images/profile.png")} style={{ borderRadius: 22, height: 44, width: 44 }}/>
             <View>
-              <Text style={styles.welcome}>Hello Krendus!</Text>
-              <Text style={styles.sub}>Mobile Developer</Text>
+              <Text style={styles.welcome}>Hello {user?.username}!</Text>
+              {/* <Text style={styles.sub}>Mobile Developer</Text> */}
             </View>
           </View>
           <Text style={styles.heading} onPress={() => setShowList(!showList)}>Assets</Text>
          {
-          showList ? (
+          assets.length ? (
             <ScrollView showsVerticalScrollIndicator={false}>
-            <View style={styles.assetContainer}>
-              <AssetCard 
-                imgSrc={require("../../assets/images/preview-img-2.jpg")}
-                name={"Laptop"}
-                serialNo={"ENG0143421"}
-              />
-               <AssetCard 
-                imgSrc={require("../../assets/images/preview-img-1.jpg")}
-                name={"IPhone"}
-                serialNo={"ENG0143451"}
-              />
-              <AssetCard 
-                imgSrc={require("../../assets/images/preview-img-2.jpg")}
-                name={"Laptop"}
-                serialNo={"ENG0143421"}
-              />
-               <AssetCard 
-                imgSrc={require("../../assets/images/preview-img-1.jpg")}
-                name={"Very long namenamenamename"}
-                serialNo={"ENG0143451"}
-              />
-              <AssetCard 
-                imgSrc={require("../../assets/images/preview-img-2.jpg")}
-                name={"Laptop"}
-                serialNo={"ENG0143421"}
-              />
-               <AssetCard 
-                imgSrc={require("../../assets/images/preview-img-1.jpg")}
-                name={"IPhone"}
-                serialNo={"ENG0143451"}
-              />
-              <AssetCard 
-                imgSrc={require("../../assets/images/preview-img-2.jpg")}
-                name={"Laptop"}
-                serialNo={"ENG0143421"}
-              />
-               <AssetCard 
-                imgSrc={require("../../assets/images/preview-img-1.jpg")}
-                name={"IPhone"}
-                serialNo={"ENG0143451"}
-              />
-            </View>
+              <View style={styles.assetContainer}>
+                {
+                  assets.map((asset, i) => (
+                    <AssetCard 
+                      key={i}
+                      imgSrc={asset?.image ?? ""}
+                      name={asset?.name}
+                      serialNo={asset?.serial_number ?? ""}
+                      id={asset?.id ?? ""}
+                      navigation={navigation}
+                    />
+                  ))
+                }
+              </View>
             </ScrollView>
           ) : (
             <View style={styles.emptyView}>
@@ -90,7 +97,7 @@ const Home = ({ navigation }) => {
       </TouchableOpacity>
     </View>
   )
-}
+})
 const styles = StyleSheet.create({
   profile: {
     flexDirection: "row",
@@ -108,10 +115,11 @@ const styles = StyleSheet.create({
     color: "#777"
   },
   heading: {
-    fontSize: 25,
+    fontSize: 20,
     fontFamily: "Nunito_600SemiBold",
     color: "#555",
-    marginVertical: 20
+    marginVertical: 20,
+    marginLeft: 5
   },
   emptyView: {
     height: 400,

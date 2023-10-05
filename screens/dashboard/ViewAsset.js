@@ -1,0 +1,142 @@
+import { View, Text, ScrollView, Image, StyleSheet, TouchableOpacity, ToastAndroid, Alert } from 'react-native'
+import React, { useEffect, useState } from 'react'
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import AntDesign from "react-native-vector-icons/AntDesign"
+import { LinearGradient } from 'expo-linear-gradient';
+import * as SQLite from "expo-sqlite";
+import { selectSingleAsset } from '../../db/Asset.table';
+import { useUserStore } from '../../store/user.store';
+
+const ViewAsset = ({ route, navigation }) => {
+  const insets = useSafeAreaInsets();
+  const [asset, setAsset] = useState(null);
+  const {user} = useUserStore();
+  const { id } = route.params;
+  const handleGetAssetResponse = (data, err) => {
+    if(data) {
+        console.log("Asset Fetched");
+        setAsset(data);
+        console.log(asset);
+    } else {
+      if(Platform.OS === "android") {
+        ToastAndroid.show("Error fetching asset", ToastAndroid.SHORT)
+      } else {    
+          Alert.alert("Error fetching asset", "Error fetching asset");
+      }
+        console.log(err);
+    }
+  }
+  const handleGetSingleAsset = () => {
+    const db = SQLite.openDatabase("database.db");
+    db.transaction((tx) => {
+      selectSingleAsset(tx, {id, user_id: user?.id}, handleGetAssetResponse)
+    })
+  }
+  useEffect(() => {
+    if(id) { 
+      const unsubscribe = navigation.addListener("focus", () => {
+        handleGetSingleAsset();
+      })
+      return unsubscribe;
+    }
+  }, [id])
+  
+  return (
+    <View
+      style={{
+        flex: 1,
+        paddingTop: insets.top,
+        paddingBottom: insets.bottom,
+        paddingLeft: insets.left,
+        paddingRight: insets.right,
+        backgroundColor: "#f3f3f3"
+      }}
+    >
+     <ScrollView showsVerticalScrollIndicator={false}>
+        <View>
+          <Image source={{ uri: asset?.image }} style={{ height: 300, width: "100%" }} />
+          <View style={styles.cover}></View>
+        </View>
+        <TouchableOpacity style={styles.back} onPress={() => navigation.goBack()}>
+            <AntDesign size={25} color={"#fff"}name="arrowleft"/>
+        </TouchableOpacity>
+        <LinearGradient colors={["transparent", "#f3f3f3ab", "#f3f3f3"]} style={styles.overlay}>
+            <Text style={styles.heading}>{asset?.name}</Text>
+            <Text style={styles.label}>{asset?.serial_number}</Text>
+        </LinearGradient>
+        <View style={{ padding: 15 }}>
+            <View style={styles.categoryContainer}> 
+                <Text style={styles.categoryHead}>Team</Text>
+                <Text style={styles.categoryBody}>{asset?.team}</Text>
+            </View>
+            <View style={styles.categoryContainer}>
+                <Text style={styles.categoryHead}>Team Lead:</Text>
+                <Text style={styles.categoryBody}>{asset?.team_lead}</Text>
+            </View>
+            <View style={styles.categoryContainer}>
+                <Text style={styles.categoryHead}>Accessories:</Text>
+                <Text style={styles.categoryBody}>{asset?.accessories}</Text>
+            </View>
+            <View style={styles.categoryContainer}>
+                <Text style={styles.categoryHead}>Received Date:</Text>
+                <Text style={styles.categoryBody}>{asset?.received_date}</Text>
+            </View>
+        </View>
+     </ScrollView>
+    </View>
+  )
+}
+const styles = StyleSheet.create({
+    label: {
+        fontSize: 14,
+        fontFamily: "Nunito_600SemiBold",
+        color: "#777"
+    },
+    heading: {
+        fontSize: 35,
+        fontFamily: "Nunito_700Bold",
+        color: "#00597D"
+    },
+    categoryContainer: {
+        marginTop: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: "#ddd",
+        paddingBottom: 12,
+        marginHorizontal: 10
+    },  
+    categoryHead: {
+        fontSize: 18,
+        fontFamily: "Nunito_700Bold",
+        color: "#00597D"
+    },
+    categoryBody: {
+        fontSize: 16,
+        fontFamily: "Nunito_500Medium"
+    },
+    back: {
+        position: "absolute",
+        left: 15,
+        top: 15,
+    },
+    overlay: {
+        position: "absolute",
+        backgroundColor: "#ffffff52",
+        height: 70,
+        width: "100%",
+        alignItems: "center",
+        justifyContent: "center",
+        top: 230,
+        borderTopRightRadius: 30,
+        borderTopLeftRadius: 30
+    },
+    cover: {
+      height: 300,
+      width: "100%",
+      backgroundColor: "#00000066",
+      position: "absolute",
+      top: 0,
+      left: 0,
+    }
+})
+
+export default ViewAsset

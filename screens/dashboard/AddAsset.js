@@ -6,6 +6,14 @@ import Dropdown from '../../components/Dropdown';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import EvilIcons from 'react-native-vector-icons/EvilIcons';
 import { Camera } from 'expo-camera';
+import DatePicker from '../../components/DatePicker';
+import { ToastAndroid } from 'react-native';
+import ImgToBase64 from 'react-native-image-base64';
+import { ActivityIndicator } from 'react-native-paper';
+import * as SQLite from "expo-sqlite";
+import * as FileSystem from 'expo-file-system';
+import { insertAsset } from '../../db/Asset.table';
+import { useUserStore } from '../../store/user.store';
 
 const AddAsset = ({ navigation }) => {
   const insets = useSafeAreaInsets();
@@ -15,6 +23,14 @@ const AddAsset = ({ navigation }) => {
   const [startCamera, setStartCamera] = useState(false);
   const [capturedImg, setCapturedImg] = useState(null);
   const [previewAvailable, setPreviewAvailable] = useState(false);
+  const [date, setDate] = useState(new Date());
+  const [stage, setStage] = useState(1);
+  const [unit, setUnit] = useState("");
+  const [teamLead, setTeamLead] = useState("");
+  const [loading, setLoading] = useState(false);
+  const {user} = useUserStore();
+  const permanentDirectory = FileSystem.documentDirectory;
+  const filePath = `${permanentDirectory}images`
   let camera;
 
   const initCamera = async () => {
@@ -22,7 +38,7 @@ const AddAsset = ({ navigation }) => {
     if (status === "granted") {
       setStartCamera(true);
     } else {
-      Alert("Access Denied")
+      Alert.alert("Access Denied")
     }
   }
   const captureImg = async () => {
@@ -34,6 +50,60 @@ const AddAsset = ({ navigation }) => {
       setPreviewAvailable(true);
     } catch(e) {
       console.log(e)
+    }
+  }
+  const handleCreateAssetResponse = (data, err) => {
+    setLoading(false);
+    if(data) {
+        console.log("Assets created");
+        if(Platform.OS === "android") {
+          ToastAndroid.show("Asset Created", ToastAndroid.SHORT)
+        }
+        navigation.navigate("Dashboard", {
+          screen: "Home"
+        })
+    } else {
+      if(Platform.OS === "android") {
+        ToastAndroid.show("Error creating asset", ToastAndroid.SHORT)
+      } else {    
+          Alert.alert("Error creating asset", "Error creating asset");
+      }
+        console.log(err);
+    }
+  }
+  const handleCreateAsset = async () => {
+    if(loading) return;
+    setLoading(true);
+    const db = SQLite.openDatabase("database.db");
+    if ( accessories && serialNumber && asset && capturedImg && date && unit && teamLead ) {
+        const directoryInfo = await FileSystem.getInfoAsync(filePath);
+        if(!directoryInfo.exists) {
+          await FileSystem.makeDirectoryAsync(filePath);
+        }
+        const toURI = `${filePath}/assets-${Date.now()}.jpg`;
+        FileSystem.moveAsync({ from: capturedImg.uri, to: toURI }).then(() => {
+          db.transaction((tx) => {
+                const item = {
+                  name: asset,
+                  team: unit,
+                  team_lead: teamLead,
+                  received_date: date.toDateString(),
+                  serial_number: serialNumber,
+                  image: toURI,
+                  accessories,
+                  user_id: user?.id,
+                  created_at: Date.now()
+                }
+                insertAsset(tx, item, handleCreateAssetResponse)
+          })
+        });
+    } else {
+        setLoading(false);
+        if(Platform.OS === "android") {
+            ToastAndroid.show("Please enter required fields", ToastAndroid.SHORT)
+        } else {    
+            Alert.alert("Required fields", "Please enter required fields");
+        }
     }
   }
  
@@ -67,11 +137,13 @@ const AddAsset = ({ navigation }) => {
               <AntDesign name="close" size={35} color={"#fff"} />
             </TouchableOpacity>
           </Camera>
-        ) : (
+        ) :
           <View style={{ padding: 15 }}>
+            {stage === 1 ? (
+            <>
             <View style={{ flexDirection: "row", alignItems: "center", columnGap: 20 }}>
               <TouchableOpacity onPress={() => navigation.goBack()}>
-                <AntDesign size={25} color={"#555"}name="arrowleft"/>
+                <AntDesign size={25} color={"#00435e"}name="arrowleft"/>
               </TouchableOpacity>
               <Text style={styles.heading}>Add Asset</Text>
             </View>
@@ -106,10 +178,15 @@ const AddAsset = ({ navigation }) => {
                 label={"Serial Number"}
                 placeholder="Enter Asset Serial Number"
               />
-              <View style={styles.imageContainer}>
+              <DatePicker 
+                label={"Received date"}
+                date={date}
+                setDate={setDate}
+              />
+              <View style={[styles.imageContainer, {height: capturedImg ? 200 : 95}]}>
                 {
                   previewAvailable ? (
-                    <Image source={{ uri:  capturedImg.uri }} height={200} width={200} />
+                    <Image source={{ uri:  capturedImg.uri }} style={{ height: 200, width: 200 }} />
                   ):( 
                     <Text style={styles.placeholder}>No image selected</Text>
                   )
@@ -118,12 +195,43 @@ const AddAsset = ({ navigation }) => {
                   <EvilIcons name="camera" size={28} color={"#fff"} />
                 </TouchableOpacity>
               </View>
-              <TouchableOpacity style={styles.btn}>
-                <Text style={styles.btnText}>Submit</Text>
+              <TouchableOpacity style={styles.btn} onPress={() => setStage(2)}>
+                <Text style={styles.btnText}>Next</Text>
               </TouchableOpacity>
             </ScrollView>
-          </View>
-        )
+            </>
+          ) : (
+            <>
+              <View style={{ flexDirection: "row", alignItems: "center", columnGap: 20 }}>
+                <TouchableOpacity onPress={() => setStage(1)}>
+                  <AntDesign size={25} color={"#00435e"}name="arrowleft"/>
+                </TouchableOpacity>
+                <Text style={styles.heading}>Add Asset</Text>
+              </View>
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                style={{ marginBottom: 70 }}
+              >
+                <Input
+                  value={unit}
+                  setValue={setUnit}
+                  label={"Team"}
+                  placeholder="Enter your team's name"
+                />
+                <Input
+                  value={teamLead}
+                  setValue={setTeamLead}
+                  label={"Team Lead"}
+                  placeholder="Enter your team lead's name"
+                />
+                <TouchableOpacity style={[styles.btn, {marginTop: 20}]} onPress={handleCreateAsset}>
+                  {loading ? <ActivityIndicator animating={true} color="#fff" /> : <Text style={styles.btnText}>Submit</Text>}
+                </TouchableOpacity>
+              </ScrollView>
+            </>
+          )
+          }
+        </View>
       }
     </View>
   )
@@ -133,11 +241,10 @@ const styles = StyleSheet.create({
   heading: {
     fontSize: 25,
     fontFamily: "Nunito_600SemiBold",
-    color: "#555",
+    color: "#00435e",
     marginVertical: 20
   },
   imageContainer: {
-    height: 200,
     backgroundColor: "#fff",
     borderRadius: 15,
     padding: 20,
@@ -155,6 +262,7 @@ const styles = StyleSheet.create({
     right: 20,
     padding: 10,
     borderRadius: 25,
+    paddingBottom: 15,
     justifyContent: "center",
     columnGap: 5,
   },
@@ -184,6 +292,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     position: "absolute",
+    paddingBottom: 10,
     borderRadius: 40,
     bottom: 20,
   },

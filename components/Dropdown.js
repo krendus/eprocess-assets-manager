@@ -13,7 +13,7 @@ const Dropdown = ({ data, placeholder, setValue, label }) => {
         placeholder={placeholder}
         fontFamily="Nunito_500Medium"
         boxStyles={{
-          borderRadius: 15,
+          borderRadius: 10,
           backgroundColor: "#ffffff99",
           borderColor: "#ccc",
           marginTop: 5,
@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
       padding: 10,
       paddingLeft: 20,
       paddingRight: 20,
-      borderRadius: 15,
+      borderRadius: 10,
       backgroundColor: "#ffffff99",
       marginTop: 5,
       borderColor: "#ccc",
