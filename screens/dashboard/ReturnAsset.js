@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, BackHandler, Image, Platform, Dimensions } from 'react-native'
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, BackHandler, Image, Dimensions } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Input from '../../components/Input';
@@ -12,23 +12,20 @@ import ImgToBase64 from 'react-native-image-base64';
 import { ActivityIndicator } from 'react-native-paper';
 import * as SQLite from "expo-sqlite";
 import * as FileSystem from 'expo-file-system';
-import { insertAsset } from '../../db/Asset.table';
+import { insertAsset, updateSingleAsset } from '../../db/Asset.table';
 import { useUserStore } from '../../store/user.store';
 
-const AddAsset = ({ navigation }) => {
+const ReturnAsset = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
-  const [accessories, setAccessories] = useState("");
-  const [serialNumber, setSerialNumber] = useState("");
-  const [asset, setAsset] = useState("");
   const [startCamera, setStartCamera] = useState(false);
   const [capturedImg, setCapturedImg] = useState(null);
   const [previewAvailable, setPreviewAvailable] = useState(false);
   const [date, setDate] = useState(new Date());
-  const [stage, setStage] = useState(1);
-  const [unit, setUnit] = useState("");
-  const [teamLead, setTeamLead] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [reason, setReason] = useState("");
+  const [showModal, setShowModal] = useState(false);
   const {user} = useUserStore();
+  const { id } = route.params;
+  const [loading, setLoading] = useState(false);
   const [ratio, setRatio] = useState("4:3");
   const { height, width } = Dimensions.get("window");
   const screenRatio = height / width;
@@ -44,36 +41,6 @@ const AddAsset = ({ navigation }) => {
       setStartCamera(true);
     } else {
       Alert.alert("Access Denied")
-    }
-  }
-  const captureImg = async () => {
-    if(!camera) return;
-    try { 
-      const picture = await camera.takePictureAsync();
-      setCapturedImg(picture);
-      setStartCamera(false);
-      setPreviewAvailable(true);
-    } catch(e) {
-      console.log(e)
-    }
-  }
-  const handleCreateAssetResponse = (data, err) => {
-    setLoading(false);
-    if(data) {
-        console.log("Assets created");
-        if(Platform.OS === "android") {
-          ToastAndroid.show("Asset Created", ToastAndroid.SHORT)
-        }
-        navigation.navigate("Dashboard", {
-          screen: "Home"
-        })
-    } else {
-      if(Platform.OS === "android") {
-        ToastAndroid.show("Error creating asset", ToastAndroid.SHORT)
-      } else {    
-          Alert.alert("Error creating asset", "Error creating asset");
-      }
-        console.log(err);
     }
   }
   const setCameraReady = async () => {
@@ -107,31 +74,57 @@ const AddAsset = ({ navigation }) => {
       }
     }
   }
-  const handleCreateAsset = async () => {
+  const captureImg = async () => {
+    if(!camera) return;
+    try { 
+      const picture = await camera.takePictureAsync();
+      setCapturedImg(picture);
+      setStartCamera(false);
+      setPreviewAvailable(true);
+    } catch(e) {
+      console.log(e)
+    }
+  }
+  const handleReturnAssetResponse = (data, err) => {
+    setLoading(false);
+    if(!err) {
+        console.log("Assets created");
+        if(Platform.OS === "android") {
+          ToastAndroid.show("Asset returned", ToastAndroid.SHORT)
+        }
+        navigation.navigate("Dashboard", {
+          screen: "Home"
+        })
+    } else {
+      if(Platform.OS === "android") {
+        ToastAndroid.show("Error returning asset", ToastAndroid.SHORT)
+      } else {    
+          Alert.alert("Error returning asset", "Error returning asset");
+      }
+        console.log(err);
+    }
+  }
+  const handleReturnAsset = async () => {
     if(loading) return;
     setLoading(true);
     const db = SQLite.openDatabase("database.db");
-    if ( accessories && serialNumber && asset && capturedImg && date && unit && teamLead ) {
+    if (reason && capturedImg && date) {
         const directoryInfo = await FileSystem.getInfoAsync(filePath);
         if(!directoryInfo.exists) {
           await FileSystem.makeDirectoryAsync(filePath);
         }
-        const toURI = `${filePath}/assets-${Date.now()}.jpg`;
+        const toURI = `${filePath}/returned-assets-${Date.now()}.jpg`;
         FileSystem.moveAsync({ from: capturedImg.uri, to: toURI }).then(() => {
           db.transaction((tx) => {
                 const item = {
-                  name: asset.trim(),
-                  team: unit.trim(),
-                  team_lead: teamLead.trim(),
-                  received_date: date.toDateString(),
-                  serial_number: serialNumber.trim(),
-                  image: toURI,
-                  accessories: accessories.trim(),
-                  status: "In possession",
+                  status: "Returned",
+                  return_date: date.toDateString(),
+                  return_reason: reason,
+                  return_image: toURI,
                   user_id: user?.id,
-                  created_at: Date.now()
+                  id,
                 }
-                insertAsset(tx, item, handleCreateAssetResponse)
+                updateSingleAsset(tx, item, handleReturnAssetResponse)
           })
         });
     } else {
@@ -164,66 +157,40 @@ const AddAsset = ({ navigation }) => {
               alignItems: "center",
               marginVertical: cameraPadding,
             }}
+            onCameraReady={setCameraReady}
+            ratio={ratio}
             ref={(r) => {
               camera = r
             }}
-            onCameraReady={setCameraReady}
-            ratio={ratio}
           >
             <TouchableOpacity style={styles.captureBtn} onPress={captureImg}>
               <EvilIcons name="camera" size={35} color={"#fff"} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.closeBtn} onPress={() => setStartCamera(false)}>
+            <TouchableOpacity style={styles.closeBtnC} onPress={() => setStartCamera(false)}>
               <AntDesign name="close" size={35} color={"#fff"} />
             </TouchableOpacity>
           </Camera>
         ) :
-          <View style={{ padding: 15 }}>
-            {stage === 1 ? (
-            <>
+        (<View style={{ padding: 15 }}>
+          <>
             <View style={{ flexDirection: "row", alignItems: "center", columnGap: 20 }}>
               <TouchableOpacity onPress={() => navigation.goBack()}>
                 <AntDesign size={25} color={"#00435e"}name="arrowleft"/>
               </TouchableOpacity>
-              <Text style={styles.heading}>Add Asset</Text>
+              <Text style={styles.heading}>Return Asset</Text>
             </View>
             <ScrollView
               showsVerticalScrollIndicator={false}
               style={{ marginBottom: 70 }}
             >
-              <Dropdown
-                setValue={setAsset}
-                label={"Asset"}
-                placeholder="Select Asset"
-                data={[
-                  {
-                    key: 1,
-                    value: "Laptop"
-                  },
-                  {
-                    key: 2,
-                    value: "Iphone"
-                  },
-                  {
-                    key: 2,
-                    value: "Monitor"
-                  }
-                ]}
-              />
               <Input
-                value={accessories}
-                setValue={setAccessories}
-                label={"Accessories"}
-                placeholder="Enter your accessories..."
-              />
-              <Input
-                value={serialNumber}
-                setValue={setSerialNumber}
-                label={"Serial Number"}
-                placeholder="Enter Asset Serial Number"
+                value={reason}
+                setValue={setReason}
+                label={"Reason for return"}
+                placeholder="Enter your reason..."
               />
               <DatePicker 
-                label={"Received date"}
+                label={"Return date"}
                 date={date}
                 setDate={setDate}
               />
@@ -239,43 +206,29 @@ const AddAsset = ({ navigation }) => {
                   <EvilIcons name="camera" size={28} color={"#fff"} />
                 </TouchableOpacity>
               </View>
-              <TouchableOpacity style={styles.btn} onPress={() => setStage(2)}>
-                <Text style={styles.btnText}>Next</Text>
+              <TouchableOpacity style={styles.btn} onPress={() => setShowModal(true)}>
+                <Text style={styles.btnText}>Return</Text>
               </TouchableOpacity>
             </ScrollView>
-            </>
-          ) : (
-            <>
-              <View style={{ flexDirection: "row", alignItems: "center", columnGap: 20 }}>
-                <TouchableOpacity onPress={() => setStage(1)}>
-                  <AntDesign size={25} color={"#00435e"}name="arrowleft"/>
-                </TouchableOpacity>
-                <Text style={styles.heading}>Add Asset</Text>
+          </>
+          {
+            showModal && (
+              <View style={[StyleSheet.absoluteFill, { width: Dimensions.get("screen").width, height: Dimensions.get("screen").height, backgroundColor: "#00000040", alignItems: "center", justifyContent: "center" }]}>
+                <View style={styles.modalCard}>
+                  <Text style={styles.modalText}>Are you sure you want to return this asset ?</Text>
+                  <View style={styles.btnContainer}>
+                    <TouchableOpacity style={styles.closeBtn} onPress={() => setShowModal(false)}>
+                      <Text style={styles.btnTextW}>Close</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.proceedBtn} onPress={handleReturnAsset}>
+                      {loading ? <ActivityIndicator animating={true} color="#fff" /> :<Text style={styles.btnText}>Proceed</Text>}
+                    </TouchableOpacity>
+                  </View>
+                </View>
               </View>
-              <ScrollView
-                showsVerticalScrollIndicator={false}
-                style={{ marginBottom: 70 }}
-              >
-                <Input
-                  value={unit}
-                  setValue={setUnit}
-                  label={"Team"}
-                  placeholder="Enter your team's name"
-                />
-                <Input
-                  value={teamLead}
-                  setValue={setTeamLead}
-                  label={"Team Lead"}
-                  placeholder="Enter your team lead's name"
-                />
-                <TouchableOpacity style={[styles.btn, {marginTop: 20}]} onPress={handleCreateAsset}>
-                  {loading ? <ActivityIndicator animating={true} color="#fff" /> : <Text style={styles.btnText}>Submit</Text>}
-                </TouchableOpacity>
-              </ScrollView>
-            </>
-          )
+            )
           }
-        </View>
+        </View>)
       }
     </View>
   )
@@ -314,6 +267,11 @@ const styles = StyleSheet.create({
     fontFamily: "Nunito_500Medium",
     fontSize: 16
   },
+  btnContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: 'center',
+  },
   btn: {
     backgroundColor: "#00435e",
     borderRadius: 15,
@@ -324,6 +282,12 @@ const styles = StyleSheet.create({
   },
   btnText: {
     color: "#fff",
+    textAlign: "center",
+    fontSize: 16,
+    fontFamily: "Nunito_700Bold"
+  },
+  btnTextW: {
+    color: "#00435e",
     textAlign: "center",
     fontSize: 16,
     fontFamily: "Nunito_700Bold"
@@ -340,11 +304,51 @@ const styles = StyleSheet.create({
     borderRadius: 40,
     bottom: 20,
   },
-  closeBtn: {
+  closeBtnC: {
     position: "absolute",
     right: 20,
     top: 20
+  },
+  modalCard: {
+    backgroundColor: "#fff",
+    height: 150,
+    justifyContent: "center",
+    width: "80%",
+    borderRadius: 15,
+    padding: 25,
+  },
+  modalText: {
+    textAlign: "center",
+    fontSize: 14,
+    fontFamily: "Nunito_600SemiBold"
+  },
+  closeBtn: {
+    backgroundColor: "transparent",
+    borderRadius: 15,
+    display: 'flex',
+    alignSelf: "stretch",
+    marginTop: 20,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderWidth: 1,
+    height: 40,
+    borderColor: "#00435e",
+    width: 110,
+  },
+  proceedBtn: {
+    backgroundColor: "#00435e",
+    borderRadius: 15,
+    display: 'flex',
+    alignSelf: "stretch",
+    marginTop: 20,
+    width: 110,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderWidth: 1,
+    height: 40,
+    borderWidth: 1,
+    borderColor: "#00435e",
   }
 })
 
-export default AddAsset
+export default ReturnAsset

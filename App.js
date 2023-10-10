@@ -20,6 +20,7 @@ import * as SQLite from "expo-sqlite";
 import { createAssetTable, createUserTable } from './db';
 import { observer } from 'mobx-react-lite';
 import { useStatusStore } from './store/status.store';
+import ReturnAsset from './screens/dashboard/ReturnAsset';
 
 const openDatabaseAsync = async () => {
   return new Promise((resolve, reject) => {
@@ -149,6 +150,13 @@ const App = observer(() => {
                   <Stack.Screen
                     name="ViewAsset"
                     component={ViewAsset}
+                    options={{
+                      headerShown: false
+                    }}
+                  />
+                  <Stack.Screen
+                    name="ReturnAsset"
+                    component={ReturnAsset}
                     options={{
                       headerShown: false
                     }}

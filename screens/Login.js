@@ -46,7 +46,7 @@ const Login = observer(({ navigation }) => {
         const db = SQLite.openDatabase("database.db");
         db.transaction((tx) => {
             const item = {
-                username,
+                username: username.trim(),
                 password,
             }
             selectAuthenticatedUser(tx, item, handleSignInResponse)

@@ -43,14 +43,14 @@ const Register = ({ navigation }) => {
         const db = SQLite.openDatabase("database.db");
         db.transaction((tx) => {
             const item = {
-                username,
+                username: username.trim(),
                 password,
-                team,
-                team_lead: teamLead,
-                email,
-                phone,
-                role,
-                organization,
+                team: team.trim(),
+                team_lead: teamLead.trim(),
+                email: email.trim(),
+                phone: phone.trim(),
+                role: role.trim(),
+                organization: organization.trim(),
                 created_at: Date.now()
             }
             insertUser(tx, item, handleSignUpResponse)

@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, Image, StyleSheet, TouchableOpacity, ToastAndroid, Alert } from 'react-native'
+import { View, Text, ScrollView, Image, StyleSheet, TouchableOpacity, ToastAndroid, Alert, Dimensions } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AntDesign from "react-native-vector-icons/AntDesign"
@@ -54,7 +54,7 @@ const ViewAsset = ({ route, navigation }) => {
     >
      <ScrollView showsVerticalScrollIndicator={false}>
         <View>
-          <Image source={{ uri: asset?.image }} style={{ height: 300, width: "100%" }} />
+          <Image source={{ uri: asset?.status === "Returned" ? asset?.return_image : asset?.image }} style={{ height: 300, width: "100%" }} />
           <View style={styles.cover}></View>
         </View>
         <TouchableOpacity style={styles.back} onPress={() => navigation.goBack()}>
@@ -81,6 +81,29 @@ const ViewAsset = ({ route, navigation }) => {
                 <Text style={styles.categoryHead}>Received Date:</Text>
                 <Text style={styles.categoryBody}>{asset?.received_date}</Text>
             </View>
+            {
+              asset?.status === "Returned" && (
+                <>
+                  <View style={styles.categoryContainer}>
+                      <Text style={styles.categoryHead}>Reason for return:</Text>
+                      <Text style={styles.categoryBody}>{asset?.return_reason}</Text>
+                  </View>
+                  <View style={styles.categoryContainer}>
+                      <Text style={styles.categoryHead}>Return Date:</Text>
+                      <Text style={styles.categoryBody}>{asset?.return_date}</Text>
+                  </View>
+                </>
+              )
+            }
+            {
+              asset?.status === "In possession" && (
+                <TouchableOpacity style={styles.btn} onPress={() => navigation.navigate("ReturnAsset", {
+                  id
+                })}>
+                  <Text style={styles.btnText}>Return Asset</Text>
+                </TouchableOpacity>
+              )
+            }
         </View>
      </ScrollView>
     </View>
@@ -99,8 +122,6 @@ const styles = StyleSheet.create({
     },
     categoryContainer: {
         marginTop: 10,
-        borderBottomWidth: 1,
-        borderBottomColor: "#ddd",
         paddingBottom: 12,
         marginHorizontal: 10
     },  
@@ -110,8 +131,13 @@ const styles = StyleSheet.create({
         color: "#00597D"
     },
     categoryBody: {
-        fontSize: 16,
-        fontFamily: "Nunito_500Medium"
+      fontSize: 16,
+      fontFamily: "Nunito_500Medium",
+      color: "#555",
+      backgroundColor: "#e7e7e7be",
+      padding: 12,
+      borderRadius: 8,
+      marginTop: 4
     },
     back: {
         position: "absolute",
@@ -136,6 +162,20 @@ const styles = StyleSheet.create({
       position: "absolute",
       top: 0,
       left: 0,
+    },
+    btn: {
+      backgroundColor: "#00435e",
+      borderRadius: 15,
+      display: 'flex',
+      alignSelf: "stretch",
+      marginTop: 30,
+      padding: 17,
+    },
+    btnText: {
+      color: "#fff",
+      textAlign: "center",
+      fontSize: 16,
+      fontFamily: "Nunito_700Bold"
     }
 })
 

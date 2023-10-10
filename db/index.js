@@ -33,6 +33,10 @@ export const createAssetTable = (tx, callback) => {
             "received_date string,"+
             "image string,"+
             "team string,"+
+            "status string," +
+            "return_image string," +
+            "return_date string," +
+            "return_reason string," +
             "team_lead string,"+
             "user_id integer,"+
             "created_at integer"+

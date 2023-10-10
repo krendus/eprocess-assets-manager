@@ -79,6 +79,8 @@ const Home = observer(({ navigation }) => {
                       serialNo={asset?.serial_number ?? ""}
                       id={asset?.id ?? ""}
                       navigation={navigation}
+                      status={asset.status}
+                      returnSrc={asset.return_image}
                     />
                   ))
                 }
