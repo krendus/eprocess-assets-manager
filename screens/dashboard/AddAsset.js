@@ -36,7 +36,7 @@ const AddAsset = ({ navigation }) => {
   const [cameraPadding, setCameraPadding] = useState(0);
   const permanentDirectory = FileSystem.documentDirectory;
   const filePath = `${permanentDirectory}images`
-  let camera;
+  const [camera, setCamera] = useState(null);
 
   const initCamera = async () => {
     const { status } = await Camera.requestCameraPermissionsAsync();
@@ -77,8 +77,7 @@ const AddAsset = ({ navigation }) => {
     }
   }
   const setCameraReady = async () => {
-    console.log("Asfabs")
-    if(!ratioSet) {
+    if(!ratioSet && camera) {
       let desiredRatio = "4:3";
       if (Platform.OS === "android") {
         let distances = {};
@@ -143,7 +142,11 @@ const AddAsset = ({ navigation }) => {
         }
     }
   }
- 
+  useEffect(() => {
+    if(camera) {
+      setCameraReady();
+    }
+  }, [camera]);
   return (
     <View 
       style={{
@@ -163,9 +166,10 @@ const AddAsset = ({ navigation }) => {
               width:"100%",
               alignItems: "center",
               marginVertical: cameraPadding,
+              opacity: ratioSet ? 1 : 0
             }}
             ref={(r) => {
-              camera = r
+              setCamera(r);
             }}
             onCameraReady={setCameraReady}
             ratio={ratio}

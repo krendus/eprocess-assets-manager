@@ -3,14 +3,14 @@ export const createUserTable = (tx, callback) => {
     return tx.executeSql(
         "create table if not exists users (" +
             "id integer primary key autoincrement," +
-            "username string unique," +
-            "role string," +
-            "team string," +
-            "email string," +
-            "phone string," +
-            "team_lead string," +
-            "organization string," +
-            "password string," +
+            "username text unique," +
+            "role text," +
+            "team text," +
+            "email text," +
+            "phone text," +
+            "team_lead text," +
+            "organization text," +
+            "password text," +
             "created_at integer" +
         ");", 
         [],
@@ -27,17 +27,17 @@ export const createAssetTable = (tx, callback) => {
     return tx.executeSql(
         "create table if not exists assets (" +
             "id integer primary key autoincrement,"+
-            "name string," +
-            "accessories string," +
-            "serial_number string,"+
-            "received_date string,"+
-            "image string,"+
-            "team string,"+
-            "status string," +
-            "return_image string," +
-            "return_date string," +
-            "return_reason string," +
-            "team_lead string,"+
+            "name text," +
+            "accessories text," +
+            "serial_number text,"+
+            "received_date text,"+
+            "image text,"+
+            "team text,"+
+            "status text," +
+            "return_image text," +
+            "return_date text," +
+            "return_reason text," +
+            "team_lead text,"+
             "user_id integer,"+
             "created_at integer"+
         ");",

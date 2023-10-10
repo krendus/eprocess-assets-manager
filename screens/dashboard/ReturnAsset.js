@@ -1,5 +1,5 @@
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, BackHandler, Image, Dimensions } from 'react-native'
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Input from '../../components/Input';
 import Dropdown from '../../components/Dropdown';
@@ -32,8 +32,8 @@ const ReturnAsset = ({ navigation, route }) => {
   const [ratioSet, setRatioSet] = useState(false);
   const [cameraPadding, setCameraPadding] = useState(0);
   const permanentDirectory = FileSystem.documentDirectory;
-  const filePath = `${permanentDirectory}images`
-  let camera;
+  const filePath = `${permanentDirectory}images`;
+  const [camera, setCamera] = useState(null);
 
   const initCamera = async () => {
     const { status } = await Camera.requestCameraPermissionsAsync();
@@ -44,8 +44,8 @@ const ReturnAsset = ({ navigation, route }) => {
     }
   }
   const setCameraReady = async () => {
-    console.log("Asfabs")
-    if(!ratioSet) {
+    // console.log("camera ready");
+    if(!ratioSet && camera) {
       let desiredRatio = "4:3";
       if (Platform.OS === "android") {
         let distances = {};
@@ -136,7 +136,12 @@ const ReturnAsset = ({ navigation, route }) => {
         }
     }
   }
- 
+  useEffect(() => {
+    if(camera) {
+      setCameraReady();
+    }
+  }, [camera]);
+  
   return (
     <View 
       style={{
@@ -156,11 +161,12 @@ const ReturnAsset = ({ navigation, route }) => {
               width:"100%",
               alignItems: "center",
               marginVertical: cameraPadding,
+              opacity: ratioSet ? 1 : 0
             }}
             onCameraReady={setCameraReady}
             ratio={ratio}
             ref={(r) => {
-              camera = r
+              setCamera(r);
             }}
           >
             <TouchableOpacity style={styles.captureBtn} onPress={captureImg}>
