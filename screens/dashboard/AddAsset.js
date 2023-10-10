@@ -1,5 +1,5 @@
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, BackHandler, Image, Platform, Dimensions } from 'react-native'
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Input from '../../components/Input';
 import Dropdown from '../../components/Dropdown';
@@ -8,7 +8,6 @@ import EvilIcons from 'react-native-vector-icons/EvilIcons';
 import { Camera } from 'expo-camera';
 import DatePicker from '../../components/DatePicker';
 import { ToastAndroid } from 'react-native';
-import ImgToBase64 from 'react-native-image-base64';
 import { ActivityIndicator } from 'react-native-paper';
 import * as SQLite from "expo-sqlite";
 import * as FileSystem from 'expo-file-system';
@@ -31,9 +30,6 @@ const AddAsset = ({ navigation }) => {
   const {user} = useUserStore();
   const [ratio, setRatio] = useState("4:3");
   const { height, width } = Dimensions.get("window");
-  const screenRatio = height / width;
-  const [ratioSet, setRatioSet] = useState(false);
-  const [cameraPadding, setCameraPadding] = useState(0);
   const permanentDirectory = FileSystem.documentDirectory;
   const filePath = `${permanentDirectory}images`
   const [camera, setCamera] = useState(null);
@@ -76,34 +72,16 @@ const AddAsset = ({ navigation }) => {
         console.log(err);
     }
   }
-  const setCameraReady = async () => {
-    if(!ratioSet && camera) {
-      let desiredRatio = "4:3";
-      if (Platform.OS === "android") {
-        let distances = {};
-        let realRatios = {};
-        let minRatio = null;
-        const ratios = await camera?.getSupportedRatiosAsync();
-        for (const ratio of ratios) {
-          const parts = ratio.split(":");
-          const realRatio = Number(parts[0])/Number(parts[1]);
-          realRatios[ratio] = realRatio;
-          const distance = screenRatio - realRatio;
-          distances[ratio] = realRatio;
-          if(minRatio == null) {
-            minRatio = ratio;
-          } else {
-            if(distance >= 0 && distance < distances[minRatio]) {
-              minRatio = ratio;
-            }
-          }
-        }
-        desiredRatio = minRatio;
-        const remainder = Math.floor((height - realRatios[desiredRatio] * width) / 2);
-        setCameraPadding(remainder);
-        setRatio(desiredRatio);
-        setRatioSet(true);
+  const getRatioStyling = () => {
+    if(Platform.OS === "android") {
+      const parts = ratio.split(":");
+      const realRatio = Number(parts[0])/Number(parts[1]);
+      const gap = Math.floor((height - realRatio * width)/2);
+      return {
+        marginVertical: gap
       }
+    } else {
+      return {};
     }
   }
   const handleCreateAsset = async () => {
@@ -142,11 +120,6 @@ const AddAsset = ({ navigation }) => {
         }
     }
   }
-  useEffect(() => {
-    if(camera) {
-      setCameraReady();
-    }
-  }, [camera]);
   return (
     <View 
       style={{
@@ -165,14 +138,12 @@ const AddAsset = ({ navigation }) => {
               flex: 1,
               width:"100%",
               alignItems: "center",
-              marginVertical: cameraPadding,
-              opacity: ratioSet ? 1 : 0
+              ...getRatioStyling()
             }}
             ref={(r) => {
               setCamera(r);
             }}
-            onCameraReady={setCameraReady}
-            ratio={ratio}
+            ratio={"4:3"}
           >
             <TouchableOpacity style={styles.captureBtn} onPress={captureImg}>
               <EvilIcons name="camera" size={35} color={"#fff"} />

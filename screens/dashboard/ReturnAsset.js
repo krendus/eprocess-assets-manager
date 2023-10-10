@@ -1,18 +1,16 @@
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, BackHandler, Image, Dimensions } from 'react-native'
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Input from '../../components/Input';
-import Dropdown from '../../components/Dropdown';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import EvilIcons from 'react-native-vector-icons/EvilIcons';
 import { Camera } from 'expo-camera';
 import DatePicker from '../../components/DatePicker';
 import { ToastAndroid } from 'react-native';
-import ImgToBase64 from 'react-native-image-base64';
 import { ActivityIndicator } from 'react-native-paper';
 import * as SQLite from "expo-sqlite";
 import * as FileSystem from 'expo-file-system';
-import { insertAsset, updateSingleAsset } from '../../db/Asset.table';
+import { updateSingleAsset } from '../../db/Asset.table';
 import { useUserStore } from '../../store/user.store';
 
 const ReturnAsset = ({ navigation, route }) => {
@@ -43,37 +41,6 @@ const ReturnAsset = ({ navigation, route }) => {
       Alert.alert("Access Denied")
     }
   }
-  const setCameraReady = async () => {
-    // console.log("camera ready");
-    if(!ratioSet && camera) {
-      let desiredRatio = "4:3";
-      if (Platform.OS === "android") {
-        let distances = {};
-        let realRatios = {};
-        let minRatio = null;
-        const ratios = await camera?.getSupportedRatiosAsync();
-        for (const ratio of ratios) {
-          const parts = ratio.split(":");
-          const realRatio = Number(parts[0])/Number(parts[1]);
-          realRatios[ratio] = realRatio;
-          const distance = screenRatio - realRatio;
-          distances[ratio] = realRatio;
-          if(minRatio == null) {
-            minRatio = ratio;
-          } else {
-            if(distance >= 0 && distance < distances[minRatio]) {
-              minRatio = ratio;
-            }
-          }
-        }
-        desiredRatio = minRatio;
-        const remainder = Math.floor((height - realRatios[desiredRatio] * width) / 2);
-        setCameraPadding(remainder);
-        setRatio(desiredRatio);
-        setRatioSet(true);
-      }
-    }
-  }
   const captureImg = async () => {
     if(!camera) return;
     try { 
@@ -83,6 +50,18 @@ const ReturnAsset = ({ navigation, route }) => {
       setPreviewAvailable(true);
     } catch(e) {
       console.log(e)
+    }
+  }
+  const getRatioStyling = () => {
+    if(Platform.OS === "android") {
+      const parts = ratio.split(":");
+      const realRatio = Number(parts[0])/Number(parts[1]);
+      const gap = Math.floor((height - realRatio * width)/2);
+      return {
+        marginVertical: gap
+      }
+    } else {
+      return {};
     }
   }
   const handleReturnAssetResponse = (data, err) => {
@@ -136,11 +115,6 @@ const ReturnAsset = ({ navigation, route }) => {
         }
     }
   }
-  useEffect(() => {
-    if(camera) {
-      setCameraReady();
-    }
-  }, [camera]);
   
   return (
     <View 
@@ -160,14 +134,12 @@ const ReturnAsset = ({ navigation, route }) => {
               flex: 1,
               width:"100%",
               alignItems: "center",
-              marginVertical: cameraPadding,
-              opacity: ratioSet ? 1 : 0
+              ...getRatioStyling()
             }}
-            onCameraReady={setCameraReady}
-            ratio={ratio}
             ref={(r) => {
               setCamera(r);
             }}
+            ratio={"4:3"}
           >
             <TouchableOpacity style={styles.captureBtn} onPress={captureImg}>
               <EvilIcons name="camera" size={35} color={"#fff"} />
